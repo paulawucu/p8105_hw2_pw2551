@@ -1,0 +1,10 @@
+---
+title: "p8105_hw2_pw2551"
+author: "Paula Wu"
+date: "10/1/2021"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
