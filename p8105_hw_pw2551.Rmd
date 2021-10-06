@@ -16,14 +16,44 @@ library(readxl)
 ```
 
 ## Problem 1
+Since I'm going to use the file path fairly frequently later, I'd like to define it beforehand.
+```{r}
+file_path = "./Trash-Wheel-Collection-Totals-8-6-19.xlsx"
+```
+
 Read and clean the Mr.Trash Wheel dataset:
 ```{r}
-# skip = 1, skip the graph
 wheels_df = 
-  read_excel("./Trash-Wheel-Collection-Totals-8-6-19.xlsx", range = "Mr. Trash Wheel!A2:N408") %>% 
+  read_excel(file_path, range = "Mr. Trash Wheel!A2:N408") %>% 
   janitor::clean_names() %>%
   filter(!(is.na(dumpster))) %>% # filter out rows that don't have dumpster-specific data
   mutate(sports_balls = round(sports_balls, 0)) # round sports_balls to nearest integer
 wheels_df
 ```
+<br> Read and clean precipitation data for 2018:
+```{r}
+year_2018 = 
+  read_excel(file_path, range = "2018 Precipitation!A2:B14") %>%  # only cells between A2:B14 are relevant
+  janitor::clean_names() %>% 
+  mutate(year = 2018)
+year_2018
+```
+Read and clean precipitation data for 2019: we only got precipitation data from Jan to Jun during 2019
+```{r}
+year_2019 = 
+  read_excel(file_path, range = "2019 Precipitation!A2:B8") %>%
+  janitor::clean_names() %>% 
+  mutate(year = 2019)
+year_2019
+```
+Combine previous two data sets:
+```{r}
+# stack these two data sets together
+two_years = 
+  bind_rows(year_2018, year_2019) %>% 
+  mutate(month = month.name[month])  # convert month to char variable
+two_years
+```
+
+
 
