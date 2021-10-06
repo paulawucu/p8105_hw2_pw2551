@@ -8,3 +8,22 @@ output: github_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+Import the libraries:
+```{r, message = FALSE}
+library(tidyverse)
+library(readxl)
+```
+
+## Problem 1
+Read and clean the Mr.Trash Wheel dataset:
+```{r}
+# skip = 1, skip the graph
+wheels_df = 
+  read_excel("./Trash-Wheel-Collection-Totals-8-6-19.xlsx", range = "Mr. Trash Wheel!A2:N408") %>% 
+  janitor::clean_names() %>%
+  filter(!(is.na(dumpster))) %>% # filter out rows that don't have dumpster-specific data
+  mutate(sports_balls = round(sports_balls, 0)) # round sports_balls to nearest integer
+wheels_df
+```
+
