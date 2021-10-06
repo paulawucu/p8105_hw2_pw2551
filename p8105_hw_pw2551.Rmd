@@ -54,6 +54,17 @@ two_years =
   mutate(month = month.name[month])  # convert month to char variable
 two_years
 ```
+## Problem 2 ##
+Read and manipulate data from "pols-month.csv"
+```{r}
+pols_month = 
+  read_csv("./fivethirtyeight_datasets/pols-month.csv", show_col_types = FALSE) %>% 
+  separate(mon, into = c('year', 'month', 'day'), sep = "-") %>% 
+  mutate(month = month.name[as.numeric(month)]) %>% 
+  select(-c(prez_dem, prez_gop, day))
+pols_month
+```
+
 
 
 
