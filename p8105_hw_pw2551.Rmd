@@ -13,6 +13,7 @@ Import the libraries:
 ```{r, message = FALSE}
 library(tidyverse)
 library(readxl)
+library(lubridate)
 ```
 
 ## Problem 1
@@ -59,10 +60,21 @@ Read and manipulate data from "pols-month.csv"
 ```{r}
 pols_month = 
   read_csv("./fivethirtyeight_datasets/pols-month.csv", show_col_types = FALSE) %>% 
-  separate(mon, into = c('year', 'month', 'day'), sep = "-") %>% 
-  mutate(month = month.name[as.numeric(month)]) %>% 
+  separate(mon, into = c('year', 'month', 'day'), sep = "-", convert = TRUE) %>% 
+  mutate(month = month.name[month]) %>% 
   select(-c(prez_dem, prez_gop, day))
 pols_month
+```
+<br> Read and manipulate data from "snp.csv"
+```{r}
+snp = 
+  read_csv("./fivethirtyeight_datasets/snp.csv", show_col_types = FALSE) %>% 
+  mutate(date = mdy(date)) %>% 
+  separate(date, into = c('year', 'month', 'day'), sep = "-", convert = TRUE) %>% 
+  arrange(year, month) %>%
+  select(-day) %>% 
+  select(year, month, everything())
+snp
 ```
 
 
