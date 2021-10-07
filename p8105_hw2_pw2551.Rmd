@@ -31,7 +31,7 @@ wheels_df =
   mutate(sports_balls = round(sports_balls, 0)) # round sports_balls to nearest integer
 knitr::kable(wheels_df[0:5,])
 ```
-<br> Read and clean precipitation data for 2018:
+Read and clean precipitation data for 2018:
 ```{r}
 year_2018 = 
   read_excel(file_path, range = "2018 Precipitation!A2:B14") %>%  # only cells between A2:B14 are relevant
@@ -56,52 +56,65 @@ two_years =
 knitr::kable(list(two_years[0:9,], two_years[10:18,]), format = 'html', booktabs = TRUE)
 ```
 ## Problem 2 ##
-Read and manipulate data from "pols-month.csv"
+*Note: for concision purpose, I set `show_col_types` equals to FALSE every time I read a csv file* <br>
+<br> Read and manipulate data from "pols-month.csv"
 ```{r}
 pols = 
   read_csv("./fivethirtyeight_datasets/pols-month.csv", show_col_types = FALSE) %>% 
   separate(mon, into = c('year', 'month', 'day'), sep = "-", convert = TRUE) %>% 
-  mutate(month = month.name[month]) %>% 
-  mutate(president = recode(prez_dem, `1` = "dem", `0` = "gop")) %>% 
-  #filter(prez_gop == 2)
-  select(-c(prez_dem, prez_gop, day))
-pols
+  mutate(month = month.name[month])
 ```
-
+How I determine the values for `president`: <br>
+- At first, I assume `prez_dem` and `prez_gop` are both binary variables. However, `unique(pull(pols, prez_gop))` shows the following result: `r unique(pull(pols, prez_gop))`. There's an extra **2**, which I assume it was due to entry error. I pulled out entries that has a value of 2 for the variable `prez_gop`, and it shows the following results:
 ```{r}
-#unique(pull(pols, prez_gop))
+filter(pols, prez_gop == 2) %>% 
+  select(prez_gop, prez_dem, year, month)  # only select a few lines for concise output
+```
+The table confirms my assumption that the 2's are probably due to data entry error, and it has the same meaning as 1's. Due to the inaccuracy in `prez_gop` column, I decide to use `prez_dem` to code for my `president` column.
+```{r}
+pols = 
+  pols %>% 
+  mutate(president = recode(prez_dem, `1` = "dem", `0` = "gop")) %>% 
+  select(-c(prez_dem, prez_gop, day))
+knitr::kable(pols[0:10,])
 ```
 
 <br> Read and manipulate data from "snp.csv"
-
 ```{r}
 snp = 
   read_csv("./fivethirtyeight_datasets/snp.csv", show_col_types = FALSE) %>% 
   mutate(date = parse_date_time2(date, 'mdy', cutoff_2000 = 49)) %>% 
-  separate(date, into = c('year', 'month', 'day'), sep = "-", convert = TRUE) %>% 
+  separate(date, into = c('year', 'month', 'day'), sep = "-", convert = TRUE) %>%
+  arrange(year, month) %>% 
   mutate(month = month.name[month]) %>% 
-  arrange(year, month) %>%
   select(-day) %>% 
   select(year, month, everything())
-view(snp)
+knitr::kable(snp[0:10,])
 ```
-
 <br> Read and manipulate data from "unemployment.csv"
 ```{r}
 unemploy =
   read_csv("./fivethirtyeight_datasets/unemployment.csv", show_col_types = FALSE) %>% 
   janitor::clean_names() %>% 
   pivot_longer(jan:dec, names_to = "month", values_to = "unemploy_rate") %>% 
+  filter(!(is.na(unemploy_rate))) %>% # omit NULL data after Jun 2015 
   mutate(year = as.integer(year)) %>% # change type to integer for `year`
-  mutate(month = month.name[match(str_to_title(month), month.abb)])  #acceptable?
-unemploy
+  mutate(month = month.name[match(str_to_title(month), month.abb)])  # for consistent month names
+knitr::kable(unemploy[0:10,])
 ```
-Merge `snp` into `pols`:
+<br>Merge `snp` into `pols`:<br>
+*Note: `snp.csv` has a data entry for Jun 2015 but `pols-month.csv` doesn't. This entry is excluded due to the use of `left_join()`*
 ```{r}
 merge_1 = left_join(pols, snp, by = c('year', 'month'))
-merge_1
+merge_1 = left_join(merge_1, unemploy, by = c('year', 'month'))
 ```
-
+Just for more straightforward presentation, I rearranged the data set in the way that I think could help interpretation.  
+```{r}
+merge_1 = 
+  merge_1 %>% 
+  select(year, month, president, close, unemploy_rate, everything())
+knitr::kable(merge_1[11:21,])
+```
 
 ## Problem 3##
 Read data, clean variable names and childs' first names
@@ -112,14 +125,15 @@ baby_names =
   mutate(childs_first_name = str_to_title(childs_first_name))
 ```
 
-Check for ethnicity names
+<br> Check for ethnicity names
 ```{r}
 # check different names of variable `ethnicity`
 unique(pull(baby_names, ethnicity))
 ```
 It's clear that people change the ethnicity encoding overtime: "BLACK NON HISPANIC" used to be coded as "BLACK NON HISP", "WHITE NON HISPANIC" used to be coded as "WHITE NON HISP", and etc. <br>
-I will rename the variable `ethnicity`, and make sure it is consistent across the data frame.
+I will rename values in `ethnicity`, and make sure it is consistent across the data frame.
 ```{r}
+# use find and replace
 baby_names = 
   baby_names %>% 
   mutate(ethnicity = replace(ethnicity, grepl('BLACK', ethnicity), 'BLACK NON HISPANIC')) %>% 
@@ -129,32 +143,34 @@ baby_names =
 # check consistency
 unique(pull(baby_names, ethnicity))
 ```
-There are only four groups, which means I successfully tidy values in `ethnicity` variable. <br>
+There are only four unique values in `ethnicity`, which means I successfully tidy the data in this column. <br>
 And then remove duplicate rows:
 ```{r}
 baby_names = 
   baby_names %>% 
   distinct(year_of_birth, gender, ethnicity, childs_first_name, count, rank, .keep_all = TRUE)
-baby_names
+knitr::kable(baby_names[0:10,])
 ```
-<br> How the name **Olivia** change overtime
+<br> How the name *Olivia* change overtime
 ```{r}
 olivias = 
   baby_names %>% 
   filter(childs_first_name == "Olivia") %>% 
-  select(-c(childs_first_name, gender, count)) %>% 
-  pivot_wider(names_from = "year_of_birth", values_from = "rank")
-olivias
+  select(-c(childs_first_name, gender, count)) %>%  # get rid of not-so-useful columns
+  pivot_wider(names_from = "year_of_birth", values_from = "rank") %>% 
+  select(ethnicity, sort(names(.)))
+knitr::kable(olivias)
 ```
-Popular boys names
+<br>Popular boys names across time
 ```{r}
 # search for the most popular names for boys
 boys = 
   baby_names %>% 
   filter(rank == 1 & gender == "MALE") %>% 
-  select(-c(gender, rank, count)) %>% 
-  pivot_wider(names_from = "year_of_birth", values_from = "childs_first_name")
-boys
+  select(-c(gender, rank, count)) %>%  # get rid of not-so-useful columns 
+  pivot_wider(names_from = "year_of_birth", values_from = "childs_first_name") %>% 
+  select(ethnicity, sort(names(.)))
+knitr::kable(boys)
 ```
 <br> Plotting
 ```{r}
@@ -163,7 +179,6 @@ male_white_16 =
   filter(year_of_birth == 2016 & ethnicity == "WHITE NON HISPANIC" & gender == "MALE")
 ggplot(male_white_16, aes(x = rank, y = count)) + 
   geom_point() + 
-  scale_x_reverse() +
   ggtitle("Count and Rank of a Child's First Name") +
   theme(plot.title = element_text(hjust = 0.5)) +
   labs(y = "# of Children with a Name", x = "Rank of a Name")
