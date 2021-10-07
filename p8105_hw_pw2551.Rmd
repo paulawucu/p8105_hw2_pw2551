@@ -139,5 +139,17 @@ boys =
   filter(rank == 1 & gender == "MALE")
 boys
 ```
+<br> Plotting
+```{r}
+male_white_16 = 
+  baby_names %>% 
+  filter(year_of_birth == 2016 & ethnicity == "WHITE NON HISPANIC" & gender == "MALE")
+ggplot(male_white_16, aes(x = rank, y = count)) + 
+  geom_point() + 
+  scale_x_reverse() +
+  ggtitle("Count and Rank of a Child's First Name") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(y = "# of Children with a Name", x = "Rank of a Name")
+```
 
 
