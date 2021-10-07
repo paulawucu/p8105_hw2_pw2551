@@ -29,7 +29,7 @@ wheels_df =
   janitor::clean_names() %>%
   filter(!(is.na(dumpster))) %>% # filter out rows that don't have dumpster-specific data
   mutate(sports_balls = round(sports_balls, 0)) # round sports_balls to nearest integer
-wheels_df
+knitr::kable(wheels_df[0:5,])
 ```
 <br> Read and clean precipitation data for 2018:
 ```{r}
@@ -37,7 +37,7 @@ year_2018 =
   read_excel(file_path, range = "2018 Precipitation!A2:B14") %>%  # only cells between A2:B14 are relevant
   janitor::clean_names() %>% 
   mutate(year = 2018)
-year_2018
+knitr::kable(year_2018[0:10,])
 ```
 Read and clean precipitation data for 2019: we only got precipitation data from Jan to Jun during 2019
 ```{r}
@@ -45,15 +45,15 @@ year_2019 =
   read_excel(file_path, range = "2019 Precipitation!A2:B8") %>%
   janitor::clean_names() %>% 
   mutate(year = 2019)
-year_2019
+knitr::kable(year_2019[0:6,])
 ```
 Combine previous two data sets:
 ```{r}
 # stack these two data sets together
 two_years = 
   bind_rows(year_2018, year_2019) %>% 
-  mutate(month = month.name[month])  # convert month to char variable
-two_years
+  mutate(month = month.name[month])  # convert month to character variable
+knitr::kable(list(two_years[0:9,], two_years[10:18,]), format = 'html', booktabs = TRUE)
 ```
 ## Problem 2 ##
 Read and manipulate data from "pols-month.csv"
@@ -62,21 +62,30 @@ pols =
   read_csv("./fivethirtyeight_datasets/pols-month.csv", show_col_types = FALSE) %>% 
   separate(mon, into = c('year', 'month', 'day'), sep = "-", convert = TRUE) %>% 
   mutate(month = month.name[month]) %>% 
+  mutate(president = recode(prez_dem, `1` = "dem", `0` = "gop")) %>% 
+  #filter(prez_gop == 2)
   select(-c(prez_dem, prez_gop, day))
 pols
 ```
+
+```{r}
+#unique(pull(pols, prez_gop))
+```
+
 <br> Read and manipulate data from "snp.csv"
+
 ```{r}
 snp = 
   read_csv("./fivethirtyeight_datasets/snp.csv", show_col_types = FALSE) %>% 
-  mutate(date = mdy(date)) %>% 
+  mutate(date = parse_date_time2(date, 'mdy', cutoff_2000 = 49)) %>% 
   separate(date, into = c('year', 'month', 'day'), sep = "-", convert = TRUE) %>% 
   mutate(month = month.name[month]) %>% 
   arrange(year, month) %>%
   select(-day) %>% 
   select(year, month, everything())
-snp
+view(snp)
 ```
+
 <br> Read and manipulate data from "unemployment.csv"
 ```{r}
 unemploy =
@@ -87,7 +96,12 @@ unemploy =
   mutate(month = month.name[match(str_to_title(month), month.abb)])  #acceptable?
 unemploy
 ```
-Merge `snp` into `pols`
+Merge `snp` into `pols`:
+```{r}
+merge_1 = left_join(pols, snp, by = c('year', 'month'))
+merge_1
+```
+
 
 ## Problem 3##
 Read data, clean variable names and childs' first names
@@ -128,7 +142,8 @@ baby_names
 olivias = 
   baby_names %>% 
   filter(childs_first_name == "Olivia") %>% 
-  select(-c(childs_first_name, gender))
+  select(-c(childs_first_name, gender, count)) %>% 
+  pivot_wider(names_from = "year_of_birth", values_from = "rank")
 olivias
 ```
 Popular boys names
@@ -136,7 +151,9 @@ Popular boys names
 # search for the most popular names for boys
 boys = 
   baby_names %>% 
-  filter(rank == 1 & gender == "MALE")
+  filter(rank == 1 & gender == "MALE") %>% 
+  select(-c(gender, rank, count)) %>% 
+  pivot_wider(names_from = "year_of_birth", values_from = "childs_first_name")
 boys
 ```
 <br> Plotting
