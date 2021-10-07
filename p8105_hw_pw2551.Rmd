@@ -58,12 +58,12 @@ two_years
 ## Problem 2 ##
 Read and manipulate data from "pols-month.csv"
 ```{r}
-pols_month = 
+pols = 
   read_csv("./fivethirtyeight_datasets/pols-month.csv", show_col_types = FALSE) %>% 
   separate(mon, into = c('year', 'month', 'day'), sep = "-", convert = TRUE) %>% 
   mutate(month = month.name[month]) %>% 
   select(-c(prez_dem, prez_gop, day))
-pols_month
+pols
 ```
 <br> Read and manipulate data from "snp.csv"
 ```{r}
@@ -84,9 +84,46 @@ unemploy =
   janitor::clean_names() %>% 
   pivot_longer(jan:dec, names_to = "month", values_to = "unemploy_rate") %>% 
   mutate(year = as.integer(year)) %>% # change type to integer for `year`
-  mutate(month = month.name[match(str_to_title(month), month.abb)])  #?? acceptable?
+  mutate(month = month.name[match(str_to_title(month), month.abb)])  #acceptable?
 unemploy
 ```
+Merge `snp` into `pols`
+
+## Problem 3##
+Read data, clean variable names and childs' first names
+```{r}
+baby_names = 
+  read_csv("./Popular_Baby_Names.csv",show_col_types = FALSE) %>% 
+  janitor::clean_names() %>% 
+  mutate(childs_first_name = str_to_title(childs_first_name))
+```
+
+Check for ethnicity names
+```{r}
+# check different names of variable `ethnicity`
+unique(pull(baby_names, ethnicity))
+```
+It's clear that people change the ethnicity encoding overtime: "BLACK NON HISPANIC" used to be coded as "BLACK NON HISP", "WHITE NON HISPANIC" used to be coded as "WHITE NON HISP", and etc. <br>
+I will rename the variable `ethnicity`, and make sure it is consistent across the data frame.
+```{r}
+baby_names = 
+  baby_names %>% 
+  mutate(ethnicity = replace(ethnicity, grepl('BLACK', ethnicity), 'BLACK NON HISPANIC')) %>% 
+  mutate(ethnicity = replace(ethnicity, grepl('WHITE', ethnicity), 'WHITE NON HISPANIC')) %>%
+  mutate(ethnicity = replace(ethnicity, grepl('ASIAN', ethnicity), 'ASIAN AND PACIFIC ISLANDER'))
+
+# check consistency
+unique(pull(baby_names, ethnicity))
+```
+
+And then remove duplicate rows:
+```{r}
+baby_names = 
+  baby_names %>% 
+  distinct(year_of_birth, gender, ethnicity, childs_first_name, count, rank, .keep_all = TRUE)
+baby_names
+```
+
 
 
 
