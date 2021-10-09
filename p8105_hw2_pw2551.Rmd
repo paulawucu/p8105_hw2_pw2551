@@ -54,12 +54,23 @@ Combine previous two data sets:
 two_years = 
   bind_rows(year_2018, year_2019) %>% 
   mutate(month = month.name[month])  # convert month to character variable
-knitr::kable(two_years[8:16,])  # only show the data from Aug 2018 - April 2019
+knitr::kable(two_years[8:16,])  # arbitrarily choose to show the data from Aug.2018 - Apr.2019
 ```
+
+```{r}
+# total precipitation 2018
+tot_prcp_2018 = sum(pull(year_2018, total))
+
+# median of sports balls in 2019
+data_2019 = filter(wheels_df, year == 2019)
+md = median(pull(data_2019, sports_balls))
+```
+
 #### Data description <br>
 After tidying and merging data extracted from Mr. Trash Wheel data set, I have two data frames in the end: `wheels_df` and `two_years`. <br>
--- The `wheels_df` data frame has `r nrow(wheels_df)` rows and `r ncol(wheels_df)` columns. Among these features, I think `weight_tons` and `volume_cubic_yards` are important since they gave us a direct view of how much trash Mr. Trash Wheel has collected during a day. The mean of `weight_tons` is `r round(mean(pull(wheels_df, weight_tons)),2)` tons, and the mean of `volume_cubic_yards` is `r round(mean(pull(wheels_df, volume_cubic_yards)),2)` cubic yards - an impressive amount of trash has been collected by Mr. Trash Wheel per day. <br>
--- The `two_years` data frame was created by merging data from "2018 Precipitation" and "2019 Precipitation", and it has `r nrow(two_years)` rows and `r ncol(two_years)` columns. The variable `total`, which means total precipitation during that month, is quite important. 
+-- The `wheels_df` data frame has `r nrow(wheels_df)` rows and `r ncol(wheels_df)` columns, after omitting non-dumpter specific data. Among those features, I think `weight_tons` and `volume_cubic_yards` are important since they gave us a direct view of how much trash Mr. Trash Wheel has collected during a day. The mean of `weight_tons` is `r round(mean(pull(wheels_df, weight_tons)),2)` tons, and the mean of `volume_cubic_yards` is `r round(mean(pull(wheels_df, volume_cubic_yards)),2)` cubic yards - an impressive amount of trash has been collected by Mr. Trash Wheel per day. <br>
+-- The `two_years` data frame was created by merging data from "2018 Precipitation" and "2019 Precipitation", and it has `r nrow(two_years)` rows and `r ncol(two_years)` columns. The variable `total`, which means total precipitation during that month, is quite important. The mean of it is `r round(mean(pull(two_years, total)),2)`. <br>
+-- The total precipitation during 2018 is `r tot_prcp_2018`, and the number of sports balls in 2019 is `r md`. <br>
 
 
 ## Problem 2 ##
@@ -109,8 +120,7 @@ unemploy =
   mutate(month = month.name[match(str_to_title(month), month.abb)])  # for consistent month names
 knitr::kable(unemploy[0:10,])
 ```
-<br>Merge `snp` into `pols`:<br>
-*Note: `snp.csv` has a data entry for Jun 2015 but `pols-month.csv` doesn't. This entry is excluded due to the use of `left_join()`*
+<br>Merge `snp` into `pols`:
 ```{r}
 merge_1 = left_join(pols, snp, by = c('year', 'month'))
 merge_1 = left_join(merge_1, unemploy, by = c('year', 'month'))
@@ -120,34 +130,40 @@ Just for more straightforward presentation, I rearranged the data set in the way
 merge_1 = 
   merge_1 %>% 
   select(year, month, president, close, unemploy_rate, everything())
-knitr::kable(merge_1[11:21,])  # after year xxx, the data is consistently populated
+knitr::kable(merge_1[11:21,])  # data entries displayed here are arbitrarily selected
 ```
 #### Data description <br>
-This is 
+* `pols` is the largest data set among these three, both in dimension (`r dim(pols)`) and in year range (from Jan.1947 to Jun.2015). After data tidying, it mainly contains year, month, the number of either GOP or Democratic governors/ senators/ representatives on a specific day, and the current president's party. <br>
+* `snp` has a dimension of `r dim(snp)`. After data tidying and manipulation, it contains year, month, and the closing value of the S&P stock. <br>
+* `unemploy` has a dimension of `r dim(unemploy)`. It contains year, month, and unemployment rate of the associate month. <br>
+* All data sets have different year range. After merging, the final data set has a dimension of `r dim(merge_1)`. The year ranges from Jan.1947 to Jun.2015, which is the same as `pols` since we used `left_join()`. As I did above, I rearranged the data set and put five variables that I think is important upfront: `r variable.names(merge_1)[1:5]`.<br>
+* Please be noted that there are many NAs in both `close` and `unemploy_rate` columns, this is because data in `snp` and `umemploy` aren't consistently populated until Jan.1950 and Jan.1948, respectively. Also, `snp` has a data entry for Jul.2015 but `pols` doesn't, and this entry is excluded due to the use of `left_join()`. <br>
 
 ## Problem 3##
-Read data, clean variable names and child's first names
+Read data, clean variable names, gender, child's first names
 ```{r}
 baby_names = 
   read_csv("./data/Popular_Baby_Names.csv",show_col_types = FALSE) %>% 
   janitor::clean_names() %>% 
-  mutate(childs_first_name = str_to_title(childs_first_name))
+  mutate(childs_first_name = str_to_title(childs_first_name)) %>% 
+  mutate(gender = str_to_lower(gender))
 ```
-
+I set all values in `gender` to lower cases for a better-looking data set. And I reformatted `childs_first_name` because there are several entries where first names are all capitalized.<br>
 <br> Check for different ethnicity values
 ```{r}
 # check different values in the variable `ethnicity`
 unique(pull(baby_names, ethnicity))
 ```
 It's clear that people change the ethnicity encoding overtime: "BLACK NON HISPANIC" used to be coded as "BLACK NON HISP", "WHITE NON HISPANIC" used to be coded as "WHITE NON HISP", and etc. <br>
-I will rename values in `ethnicity`, and make sure it is consistent across the data frame.
+I will reformat values in `ethnicity`, and make sure it is consistent across the data frame.
 ```{r}
 # use find and replace
 baby_names = 
   baby_names %>% 
-  mutate(ethnicity = replace(ethnicity, grepl('BLACK', ethnicity), 'BLACK NON HISPANIC')) %>% 
-  mutate(ethnicity = replace(ethnicity, grepl('WHITE', ethnicity), 'WHITE NON HISPANIC')) %>%
-  mutate(ethnicity = replace(ethnicity, grepl('ASIAN', ethnicity), 'ASIAN AND PACIFIC ISLANDER'))
+  mutate(ethnicity = replace(ethnicity, grepl('BLACK', ethnicity), 'Black non hispanic')) %>% 
+  mutate(ethnicity = replace(ethnicity, grepl('WHITE', ethnicity), 'White non hispanic')) %>%
+  mutate(ethnicity = replace(ethnicity, grepl('ASIAN', ethnicity), 'Asian and pacific islander')) %>% 
+  mutate(ethnicity = replace(ethnicity, grepl('HIS', ethnicity), 'Hispanic'))
 
 # check consistency
 unique(pull(baby_names, ethnicity))
@@ -175,7 +191,7 @@ knitr::kable(olivias)
 # search for the most popular names for boys
 boys = 
   baby_names %>% 
-  filter(rank == 1 & gender == "MALE") %>% 
+  filter(rank == 1 & gender == "male") %>% 
   select(-c(gender, rank, count)) %>%  # get rid of not-so-useful columns 
   pivot_wider(names_from = "year_of_birth", values_from = "childs_first_name") %>% 
   select(ethnicity, sort(names(.)))
@@ -185,7 +201,7 @@ knitr::kable(boys)
 ```{r}
 male_white_16 = 
   baby_names %>% 
-  filter(year_of_birth == 2016 & ethnicity == "WHITE NON HISPANIC" & gender == "MALE")
+  filter(year_of_birth == 2016 & ethnicity == "White non hispanic" & gender == "male")
 ggplot(male_white_16, aes(x = rank, y = count)) + 
   geom_point() + 
   ggtitle("Count and Rank of a Child's First Name") +
