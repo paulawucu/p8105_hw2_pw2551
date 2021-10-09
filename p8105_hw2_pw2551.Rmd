@@ -19,15 +19,16 @@ library(lubridate)
 ## Problem 1
 Since I'm going to use the file path fairly frequently later, I'd like to define it beforehand.
 ```{r}
-file_path = "./Trash-Wheel-Collection-Totals-8-6-19.xlsx"
+file_path = "./data/Trash-Wheel-Collection-Totals-7-2020-2.xlsx"
 ```
 
 Read and clean the Mr.Trash Wheel dataset:
-```{r}
+```{r, warning=FALSE}
 wheels_df = 
-  read_excel(file_path, range = "Mr. Trash Wheel!A2:N408") %>% 
+  read_excel(file_path, range = "Mr. Trash Wheel!A2:N535") %>% 
   janitor::clean_names() %>%
   filter(!(is.na(dumpster))) %>% # filter out rows that don't have dumpster-specific data
+  filter(!is.na(as.numeric(as.character(dumpster)))) %>% # filter out the last row: the grand total
   mutate(sports_balls = round(sports_balls, 0)) # round sports_balls to nearest integer
 knitr::kable(wheels_df[0:5,])
 ```
@@ -42,10 +43,10 @@ knitr::kable(year_2018[0:10,])
 Read and clean precipitation data for 2019: we only got precipitation data from Jan to Jun during 2019
 ```{r}
 year_2019 = 
-  read_excel(file_path, range = "2019 Precipitation!A2:B8") %>%
+  read_excel(file_path, range = "2019 Precipitation!A2:B14") %>%  # only cells between A2:B14 are relevant
   janitor::clean_names() %>% 
   mutate(year = 2019)
-knitr::kable(year_2019[0:6,])
+knitr::kable(year_2019[0:10,])
 ```
 Combine previous two data sets:
 ```{r}
@@ -53,14 +54,20 @@ Combine previous two data sets:
 two_years = 
   bind_rows(year_2018, year_2019) %>% 
   mutate(month = month.name[month])  # convert month to character variable
-knitr::kable(list(two_years[0:9,], two_years[10:18,]), format = 'html', booktabs = TRUE)
+knitr::kable(two_years[8:16,])  # only show the data from Aug 2018 - April 2019
 ```
+#### Data description <br>
+After tidying and merging data extracted from Mr. Trash Wheel data set, I have two data frames in the end: `wheels_df` and `two_years`. <br>
+-- The `wheels_df` data frame has `r nrow(wheels_df)` rows and `r ncol(wheels_df)` columns. Among these features, I think `weight_tons` and `volume_cubic_yards` are important since they gave us a direct view of how much trash Mr. Trash Wheel has collected during a day. The mean of `weight_tons` is `r round(mean(pull(wheels_df, weight_tons)),2)` tons, and the mean of `volume_cubic_yards` is `r round(mean(pull(wheels_df, volume_cubic_yards)),2)` cubic yards - an impressive amount of trash has been collected by Mr. Trash Wheel per day. <br>
+-- The `two_years` data frame was created by merging data from "2018 Precipitation" and "2019 Precipitation", and it has `r nrow(two_years)` rows and `r ncol(two_years)` columns. The variable `total`, which means total precipitation during that month, is quite important. 
+
+
 ## Problem 2 ##
 *Note: for concision purpose, I set `show_col_types` equals to FALSE every time I read a csv file* <br>
 <br> Read and manipulate data from "pols-month.csv"
 ```{r}
 pols = 
-  read_csv("./fivethirtyeight_datasets/pols-month.csv", show_col_types = FALSE) %>% 
+  read_csv("./data/fivethirtyeight_datasets/pols-month.csv", show_col_types = FALSE) %>% 
   separate(mon, into = c('year', 'month', 'day'), sep = "-", convert = TRUE) %>% 
   mutate(month = month.name[month])
 ```
@@ -82,19 +89,19 @@ knitr::kable(pols[0:10,])
 <br> Read and manipulate data from "snp.csv"
 ```{r}
 snp = 
-  read_csv("./fivethirtyeight_datasets/snp.csv", show_col_types = FALSE) %>% 
+  read_csv("./data/fivethirtyeight_datasets/snp.csv", show_col_types = FALSE) %>% 
   mutate(date = parse_date_time2(date, 'mdy', cutoff_2000 = 49)) %>% 
   separate(date, into = c('year', 'month', 'day'), sep = "-", convert = TRUE) %>%
   arrange(year, month) %>% 
   mutate(month = month.name[month]) %>% 
   select(-day) %>% 
   select(year, month, everything())
-knitr::kable(snp[0:10,])
+knitr::kable(snp[0:8,])
 ```
 <br> Read and manipulate data from "unemployment.csv"
 ```{r}
 unemploy =
-  read_csv("./fivethirtyeight_datasets/unemployment.csv", show_col_types = FALSE) %>% 
+  read_csv("./data/fivethirtyeight_datasets/unemployment.csv", show_col_types = FALSE) %>% 
   janitor::clean_names() %>% 
   pivot_longer(jan:dec, names_to = "month", values_to = "unemploy_rate") %>% 
   filter(!(is.na(unemploy_rate))) %>% # omit NULL data after Jun 2015 
@@ -113,21 +120,23 @@ Just for more straightforward presentation, I rearranged the data set in the way
 merge_1 = 
   merge_1 %>% 
   select(year, month, president, close, unemploy_rate, everything())
-knitr::kable(merge_1[11:21,])
+knitr::kable(merge_1[11:21,])  # after year xxx, the data is consistently populated
 ```
+#### Data description <br>
+This is 
 
 ## Problem 3##
-Read data, clean variable names and childs' first names
+Read data, clean variable names and child's first names
 ```{r}
 baby_names = 
-  read_csv("./Popular_Baby_Names.csv",show_col_types = FALSE) %>% 
+  read_csv("./data/Popular_Baby_Names.csv",show_col_types = FALSE) %>% 
   janitor::clean_names() %>% 
   mutate(childs_first_name = str_to_title(childs_first_name))
 ```
 
-<br> Check for ethnicity names
+<br> Check for different ethnicity values
 ```{r}
-# check different names of variable `ethnicity`
+# check different values in the variable `ethnicity`
 unique(pull(baby_names, ethnicity))
 ```
 It's clear that people change the ethnicity encoding overtime: "BLACK NON HISPANIC" used to be coded as "BLACK NON HISP", "WHITE NON HISPANIC" used to be coded as "WHITE NON HISP", and etc. <br>
@@ -144,7 +153,7 @@ baby_names =
 unique(pull(baby_names, ethnicity))
 ```
 There are only four unique values in `ethnicity`, which means I successfully tidy the data in this column. <br>
-And then remove duplicate rows:
+And then remove duplicated rows:
 ```{r}
 baby_names = 
   baby_names %>% 
