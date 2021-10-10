@@ -206,7 +206,8 @@ ggplot(male_white_16, aes(x = rank, y = count)) +
   geom_point() + 
   ggtitle("Count and Rank of a Child's First Name") +
   theme(plot.title = element_text(hjust = 0.5)) +
-  labs(y = "# of Children with a Name", x = "Rank of a Name")
+  labs(y = "# of Children with a Name", x = "Rank of a Name", 
+       caption = "data from male white non hispanic children born in 2016")
 ```
 
 
