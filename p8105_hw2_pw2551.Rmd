@@ -40,7 +40,7 @@ year_2018 =
   mutate(year = 2018)
 knitr::kable(year_2018[0:10,])
 ```
-Read and clean precipitation data for 2019: we only got precipitation data from Jan to Jun during 2019
+Read and clean precipitation data for 2019:
 ```{r}
 year_2019 = 
   read_excel(file_path, range = "2019 Precipitation!A2:B14") %>%  # only cells between A2:B14 are relevant
